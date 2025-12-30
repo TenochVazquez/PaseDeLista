@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Pase de lista - Mi Aula</title>
+<style>
+    :root{
+        --bg:#0f1724; --card:#0b1220; --accent:#7c3aed; --accent-2:#06b6d4;
+        --ok:#16a34a; --abs:#ef4444; --late:#f59e0b; --glass: rgba(255,255,255,0.04);
+        font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+    html,body{height:100%;margin:0;background:
+        radial-gradient(1200px 600px at 10% 10%, rgba(124,58,237,0.12), transparent),
+        radial-gradient(1000px 400px at 90% 90%, rgba(6,182,212,0.08), transparent),
+        var(--bg); color:#e6eef8; overflow-x: hidden;}
+    
+    .wrap{max-width:1100px;margin:28px auto;padding:24px;border-radius:14px;background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);box-shadow:0 10px 30px rgba(2,6,23,0.6);}
+    header{display:flex;gap:12px;align-items:center;justify-content:space-between}
+    h1{margin:0;font-size:20px;letter-spacing:0.2px}
+    .controls{display:flex;gap:8px;align-items:center}
+    input[type="date"], input.search, .modal-input{padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.1);background:var(--glass);color:inherit;outline:none}
+    
+    button{background:linear-gradient(90deg,var(--accent),var(--accent-2));border:0;padding:8px 12px;color:white;border-radius:10px;cursor:pointer;font-weight:600;transition: opacity 0.2s}
+    button:hover{opacity: 0.9}
+    button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:inherit}
+    button.danger{background: var(--abs)}
+
+    .pill{padding:6px 10px;border-radius:999px;background:rgba(255,255,255,0.03);display:flex;gap:8px;align-items:center;font-weight:600}
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-top:18px}
+    
+    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:12px;padding:12px;display:flex;gap:12px;align-items:center;border:1px solid rgba(255,255,255,0.03);position: relative;}
+    .avatar{width:56px;height:56px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:18px;flex-shrink:0}
+    .meta{flex:1; cursor: pointer;}
+    .name{font-weight:700}
+    
+    .status button{padding:6px 8px;border-radius:8px;border:0;background:rgba(255,255,255,0.03);color:inherit;cursor:pointer;font-weight:700;font-size:12px}
+    .present{background:linear-gradient(90deg, rgba(22,163,74,0.14), rgba(22,163,74,0.06));border:1px solid rgba(22,163,74,0.18);color:var(--ok)}
+    .absent{background:linear-gradient(90deg, rgba(239,68,68,0.12), rgba(239,68,68,0.04));border:1px solid rgba(239,68,68,0.18);color:var(--abs)}
+    .late{background:linear-gradient(90deg, rgba(245,158,11,0.12), rgba(245,158,11,0.04));border:1px solid rgba(245,158,11,0.18);color:var(--late)}
+
+    .modal-overlay {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(2, 6, 23, 0.85); backdrop-filter: blur(8px);
+        display: none; align-items: center; justify-content: center; z-index: 1000;
+    }
+    .modal-content {
+        background: var(--card); border: 1px solid rgba(255,255,255,0.1);
+        padding: 24px; border-radius: 16px; width: 90%; max-width: 400px;
+    }
+    .modal-overlay.active { display: flex; }
+
+    footer{display:flex;justify-content:space-between;align-items:center;margin-top:18px;gap:12px}
+    .user-info{font-size: 12px; color: var(--accent-2); font-weight: bold;}
+</style>
+</head>
+<body>
+
+<div class="modal-overlay" id="modalOverlay">
+    <div class="modal-content">
+        <span id="modalTitle" style="font-weight:bold; display:block; margin-bottom:10px;">Título</span>
+        <div id="modalBody"></div>
+        <div style="margin-top:20px; text-align:right;">
+            <button class="ghost" id="modalCancel">Cancelar</button>
+            <button id="modalConfirm">Confirmar</button>
+        </div>
+    </div>
+</div>
+
+<div class="wrap">
+    <header>
+        <div>
+            <h1>Pase de Lista</h1>
+            <div class="user-info" id="userDisplay">Cargando usuario...</div>
+        </div>
+        <div class="controls">
+            <input type="date" id="date">
+            <button class="danger" id="logoutBtn" style="padding: 5px 10px; font-size: 12px;">Salir</button>
+        </div>
+    </header>
+
+    <div class="summary" style="display:flex; gap:10px; margin-top:15px;">
+        <div class="pill">Presentes: <strong id="countPresent">0</strong></div>
+        <div class="pill">Ausentes: <strong id="countAbsent">0</strong></div>
+    </div>
+
+    <section style="margin-top:20px; display:flex; gap:10px;">
+        <input class="add-name" id="newName" placeholder="Nuevo Alumno" style="background:var(--glass); border:1px solid rgba(255,255,255,0.1); color:white; padding:8px; border-radius:10px; flex:1;">
+        <button id="addBtn">Agregar</button>
+    </section>
+
+    <div class="grid" id="grid"></div>
+
+    <footer>
+        <div class="small" id="syncStatus">Iniciando...</div>
+        <button id="export">Exportar CSV</button>
+    </footer>
+</div>
+
+<script>
+// --- LÓGICA DE LA INTERFAZ ---
+let students = [];
+const key = 'pase_lista_v1';
+
+function render(){
+    const grid = document.getElementById('grid');
+    grid.innerHTML = '';
+    let p=0, a=0;
+    students.forEach(s => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+            <div class="avatar">${s.name[0]}</div>
+            <div class="meta"><div class="name">${s.name}</div></div>
+            <div class="status">
+                <button class="${s.status === 'present' ? 'present' : ''}" onclick="updateStatus('${s.id}', 'present')">P</button>
+                <button class="${s.status === 'absent' ? 'absent' : ''}" onclick="updateStatus('${s.id}', 'absent')">A</button>
+            </div>
+        `;
+        grid.appendChild(card);
+        if(s.status === 'present') p++; else a++;
+    });
+    document.getElementById('countPresent').textContent = p;
+    document.getElementById('countAbsent').textContent = a;
+}
+
+window.updateStatus = (id, newStatus) => {
+    const student = students.find(s => s.id === id);
+    if(student) {
+        student.status = newStatus;
+        save();
+    }
+};
+
+function save(){
+    render();
+    if(window.saveToCloud) window.saveToCloud(students);
+}
+
+document.getElementById('addBtn').onclick = () => {
+    const nameInput = document.getElementById('newName');
+    if(!nameInput.value.trim()) return;
+    students.unshift({id: crypto.randomUUID(), name: nameInput.value.trim(), status: 'absent'});
+    nameInput.value = '';
+    save();
+};
+
+document.getElementById('export').onclick = () => {
+    const csv = "nombre,estado\n" + students.map(s=>`"${s.name}",${s.status}`).join("\n");
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'}));
+    link.download = `asistencia.csv`;
+    link.click();
+};
+</script>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
+  import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
+  import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyACWzBOnsbKBq9DUvylaLMvW0W61ZgHMww",
+    authDomain: "pasedelista01.firebaseapp.com",
+    projectId: "pasedelista01",
+    storageBucket: "pasedelista01.firebasestorage.app",
+    messagingSenderId: "756847621008",
+    appId: "1:756847621008:web:0844ef25ee8c781aa1b915"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const auth = getAuth(app);
+
+  const statusEl = document.getElementById('syncStatus');
+  const userDisplay = document.getElementById('userDisplay');
+  let currentUid = null;
+
+  // 1. Verificar si el usuario está logueado
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      currentUid = user.uid;
+      userDisplay.textContent = "Docente: " + user.email;
+      
+      // 2. Cargar SOLO la lista de este usuario
+      onSnapshot(doc(db, "usuarios", user.uid), (docSnap) => {
+        if (docSnap.exists()) {
+          students = docSnap.data().alumnos || [];
+          render();
+          statusEl.textContent = "✔ Datos sincronizados";
+        } else {
+          statusEl.textContent = "Lista nueva creada";
+        }
+      });
+    } else {
+      // Si no hay usuario, regresar al login
+      window.location.href = 'index.html';
+    }
+  });
+
+  // 3. Función para guardar en la carpeta del usuario
+  window.saveToCloud = async (lista) => {
+    if (!currentUid) return;
+    try {
+      await setDoc(doc(db, "usuarios", currentUid), { 
+        alumnos: lista,
+        ultimaConexion: new Date()
+      });
+      statusEl.textContent = "✔ Cambios guardados";
+    } catch (e) {
+      statusEl.textContent = "❌ Error al guardar";
+    }
+  };
+
+  // 4. Botón de Cerrar Sesión
+  document.getElementById('logoutBtn').onclick = () => {
+    signOut(auth).then(() => { window.location.href = 'index.html'; });
+  };
+</script>
+
+</body>
+</html>
